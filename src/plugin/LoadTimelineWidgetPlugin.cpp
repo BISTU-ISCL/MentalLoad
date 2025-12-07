@@ -25,17 +25,17 @@ QString LoadTimelineWidgetPlugin::domXml() const {
       <property name="toolTip" >
        <string>时间轴负荷监视控件</string>
       </property>
-      <property name="whatsThis" >
-       <string>用于展示高/中/低负荷水平的时间曲线。</string>
-      </property>
-     </widget>
-     <customwidgets>
-      <customwidget>
-       <class>LoadTimelineWidget</class>
-       <extends>QFrame</extends>
+     <property name="whatsThis" >
+      <string>用于展示高/中/低负荷水平的时间曲线。</string>
+     </property>
+    </widget>
+    <customwidgets>
+     <customwidget>
+      <class>LoadTimelineWidget</class>
+      <extends>QFrame</extends>
        <header>widget/LoadTimelineWidget.h</header>
-      </customwidget>
-     </customwidgets>
+     </customwidget>
+    </customwidgets>
     </ui>)";
 }
 
@@ -44,7 +44,7 @@ QString LoadTimelineWidgetPlugin::group() const {
 }
 
 QString LoadTimelineWidgetPlugin::includeFile() const {
-    return QStringLiteral("LoadTimelineWidget.h");
+    return QStringLiteral("widget/LoadTimelineWidget.h");
 }
 
 QString LoadTimelineWidgetPlugin::name() const {

@@ -8,6 +8,7 @@
 - 绘制特性：可选平滑曲线、网格、当前值标签，支持实时追加数据。
 - Designer 集成：提供 `LoadTimelineWidgetPlugin`，可加入 Qt Designer 控件面板。
 - 示例应用：`mental_load_demo` 展示属性调节与随机数据输入。
+- 自适应缩放：根据控件尺寸调整字体、线宽与边距，放大缩小时保持观感一致。
 
 ## 主要属性（`LoadTimelineWidget`）
 | 属性 | 说明 | 默认值 |
@@ -27,17 +28,17 @@
 - `setSamples(const QVector<Sample> &samples)` 批量设置数据。
 
 ## 构建与运行
-本仓库提供 CMake 构建脚本，默认使用 **Qt 6**：
+本仓库提供 CMake 构建脚本，已针对 **Qt 5.15.2**（Qt Designer 同版本）设置：
 
 ```bash
 mkdir build && cd build
-cmake .. -DCMAKE_PREFIX_PATH=/path/to/Qt/6.x/gcc_64
+cmake .. -DCMAKE_PREFIX_PATH=/path/to/Qt/5.15.2/gcc_64
 cmake --build .
 ```
 
 生成内容：
 - `libLoadTimelineWidget.a`：控件静态库。
-- `designer/libLoadTimelineWidgetPlugin.so`：Designer 插件（将该文件放入 Qt 安装的 `plugins/designer` 目录即可在 Qt Designer 中使用）。
+- `designer/libLoadTimelineWidgetPlugin.so`：Designer 插件（将该文件放入 Qt 5.15.2 安装的 `plugins/designer` 目录即可在 Qt Designer 中使用）。
 - `mental_load_demo`：演示程序。
 
 运行示例：
@@ -48,7 +49,7 @@ cmake --build .
 ## Designer 插件说明
 - 插件类：`LoadTimelineWidgetPlugin`（分组名：`Mental Load Widgets`）。
 - XML 描述已在 `domXml()` 中定义，加载后可在 Designer 侧边栏直接拖拽使用。
-- 如需在 Qt 5 下构建，可将 `UiPlugin` 模块替换为 `Designer`，并在 CMake 中调整 `find_package` 与链接库。
+- 默认 CMake 已使用 `Qt5::Designer` 链接，直接针对 Qt 5.15.2 构建，无需额外调整。
 
 ## 演示界面说明
 演示程序提供以下控制项实时修改控件行为：
@@ -67,7 +68,7 @@ cmake --build .
   ```
 - qmake：
   ```qmake
-  INCLUDEPATH += $$PWD/src/widget
+  INCLUDEPATH += $$PWD/src
   HEADERS += $$PWD/src/widget/LoadTimelineWidget.h
   SOURCES += $$PWD/src/widget/LoadTimelineWidget.cpp
   ```

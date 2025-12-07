@@ -87,13 +87,15 @@ protected:
 
 private:
     QRectF chartRect() const;
+    qreal uiScale() const;
+    qreal scaledMargin() const;
     void pruneOutdatedSamples();
     QPainterPath buildPath(const QVector<QPointF> &points) const;
     QVector<QPointF> mapSamplesToPoints() const;
     QColor colorForLoad(double value) const;
-    void drawAxis(QPainter &painter, const QRectF &area);
+    void drawAxis(QPainter &painter, const QRectF &area, qreal scale);
     void drawThresholdZones(QPainter &painter, const QRectF &area);
-    void drawCurrentValueLabel(QPainter &painter, const QPointF &point, double value);
+    void drawCurrentValueLabel(QPainter &painter, const QPointF &point, double value, qreal scale);
 
     int m_timeWindowSeconds = 60;
     int m_tickIntervalSeconds = 10;

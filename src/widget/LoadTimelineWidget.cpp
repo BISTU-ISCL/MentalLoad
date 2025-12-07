@@ -107,6 +107,8 @@ void LoadTimelineWidget::paintEvent(QPaintEvent *event) {
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing, true);
 
+    const qreal scale = uiScale();
+
     QRectF area = chartRect();
 
     // 绘制背景渐变
@@ -116,26 +118,42 @@ void LoadTimelineWidget::paintEvent(QPaintEvent *event) {
     painter.fillRect(area, gradient);
 
     drawThresholdZones(painter, area);
-    drawAxis(painter, area);
+    drawAxis(painter, area, scale);
 
     QVector<QPointF> points = mapSamplesToPoints();
     if (points.size() < 2) return;
 
     QPainterPath path = buildPath(points);
-    painter.setPen(QPen(QColor(0, 96, 180), 2));
+    painter.setPen(QPen(QColor(0, 96, 180), 2.0 * scale));
     painter.drawPath(path);
 
     // 末尾标签
     if (m_currentValueLabelVisible) {
         const QPointF &last = points.constLast();
         double lastValue = m_samples.constLast().loadValue;
-        drawCurrentValueLabel(painter, last, lastValue);
+        drawCurrentValueLabel(painter, last, lastValue, scale);
     }
 }
 
 QRectF LoadTimelineWidget::chartRect() const {
-    constexpr int margin = 20;
-    return QRectF(margin, margin, width() - margin * 2, height() - margin * 2);
+    const qreal margin = scaledMargin();
+    const qreal w = qMax<qreal>(0.0, width() - margin * 2);
+    const qreal h = qMax<qreal>(0.0, height() - margin * 2);
+    return QRectF(margin, margin, w, h);
+}
+
+qreal LoadTimelineWidget::uiScale() const {
+    // 以设计稿 440x260 为基准进行自适应缩放，避免尺寸变化造成视觉畸变
+    const qreal baseWidth = 440.0;
+    const qreal baseHeight = 260.0;
+    const qreal sx = width() / baseWidth;
+    const qreal sy = height() / baseHeight;
+    return qBound<qreal>(0.75, qMin(sx, sy), 1.6);
+}
+
+qreal LoadTimelineWidget::scaledMargin() const {
+    const qreal scale = uiScale();
+    return qBound<qreal>(12.0, 20.0 * scale, 32.0);
 }
 
 void LoadTimelineWidget::pruneOutdatedSamples() {
@@ -201,23 +219,25 @@ QColor LoadTimelineWidget::colorForLoad(double value) const {
     return QColor(56, 142, 60);
 }
 
-void LoadTimelineWidget::drawAxis(QPainter &painter, const QRectF &area) {
+void LoadTimelineWidget::drawAxis(QPainter &painter, const QRectF &area, qreal scale) {
     painter.save();
-    painter.setPen(QPen(QColor(120, 120, 120), 1));
+    QPen borderPen(QColor(120, 120, 120), 1.0 * scale);
+    painter.setPen(borderPen);
     painter.drawRect(area);
 
     // 网格与刻度
     if (m_gridVisible) {
-        painter.setPen(QPen(QColor(200, 200, 200), 1, Qt::DashLine));
+        QPen gridPen(QColor(200, 200, 200), 1.0 * scale, Qt::DashLine);
+        painter.setPen(gridPen);
         // 横向刻度
-        int tickCount = area.width() / 50; // 基于大约50px一格
+        const int tickCount = qMax(2, static_cast<int>(area.width() / (50.0 * scale))); // 基于大约50px一格
         for (int i = 1; i < tickCount; ++i) {
             double x = area.left() + i * (area.width() / tickCount);
             painter.drawLine(QPointF(x, area.top()), QPointF(x, area.bottom()));
         }
 
         // 纵向刻度
-        int vTicks = 5;
+        const int vTicks = 5;
         for (int i = 1; i < vTicks; ++i) {
             double y = area.top() + i * (area.height() / vTicks);
             painter.drawLine(QPointF(area.left(), y), QPointF(area.right(), y));
@@ -225,18 +245,18 @@ void LoadTimelineWidget::drawAxis(QPainter &painter, const QRectF &area) {
     }
 
     // X轴时间刻度文本
-    painter.setPen(QPen(QColor(80, 80, 80), 1));
+    painter.setPen(QPen(QColor(80, 80, 80), 1.0 * scale));
     QFont tickFont = painter.font();
-    tickFont.setPointSize(8);
+    tickFont.setPixelSize(qMax(8.0, 10.0 * scale));
     painter.setFont(tickFont);
 
     const int tickCount = qMax(1, m_timeWindowSeconds / m_tickIntervalSeconds);
     for (int i = 0; i <= tickCount; ++i) {
         double ratio = static_cast<double>(i) / tickCount;
         double x = area.left() + (1.0 - ratio) * area.width();
-        painter.drawLine(QPointF(x, area.bottom()), QPointF(x, area.bottom() + 5));
+        painter.drawLine(QPointF(x, area.bottom()), QPointF(x, area.bottom() + 5.0 * scale));
         QString label = QString::number(i * m_tickIntervalSeconds) + "s";
-        painter.drawText(QPointF(x - 10, area.bottom() + 18), label);
+        painter.drawText(QPointF(x - 10.0 * scale, area.bottom() + 18.0 * scale), label);
     }
 
     // Y轴刻度文本
@@ -245,8 +265,8 @@ void LoadTimelineWidget::drawAxis(QPainter &painter, const QRectF &area) {
         double ratio = static_cast<double>(i) / vTicks;
         double y = area.bottom() - ratio * area.height();
         double value = m_loadMin + ratio * (m_loadMax - m_loadMin);
-        painter.drawLine(QPointF(area.left() - 5, y), QPointF(area.left(), y));
-        painter.drawText(QPointF(area.left() - 45, y + 4), QString::number(value, 'f', 0));
+        painter.drawLine(QPointF(area.left() - 5.0 * scale, y), QPointF(area.left(), y));
+        painter.drawText(QPointF(area.left() - 45.0 * scale, y + 4.0 * scale), QString::number(value, 'f', 0));
     }
 
     painter.restore();
@@ -277,24 +297,25 @@ void LoadTimelineWidget::drawThresholdZones(QPainter &painter, const QRectF &are
     painter.restore();
 }
 
-void LoadTimelineWidget::drawCurrentValueLabel(QPainter &painter, const QPointF &point, double value) {
+void LoadTimelineWidget::drawCurrentValueLabel(QPainter &painter, const QPointF &point, double value, qreal scale) {
     painter.save();
     QString text = QString::number(value, 'f', 1);
     QFont font = painter.font();
     font.setBold(true);
+    font.setPixelSize(qMax(10.0, 12.0 * scale));
     painter.setFont(font);
 
     QColor textColor = colorForLoad(value);
     painter.setPen(Qt::NoPen);
     painter.setBrush(QColor(255, 255, 255, 220));
-    QRectF rect(point.x() + 8, point.y() - 16, 50, 20);
-    painter.drawRoundedRect(rect, 4, 4);
+    QRectF rect(point.x() + 8.0 * scale, point.y() - 16.0 * scale, 60.0 * scale, 22.0 * scale);
+    painter.drawRoundedRect(rect, 4.0 * scale, 4.0 * scale);
 
-    painter.setPen(QPen(textColor, 1));
+    painter.setPen(QPen(textColor, 1.0 * scale));
     painter.drawText(rect.adjusted(4, 0, -4, 0), Qt::AlignVCenter | Qt::AlignLeft, text);
 
-    painter.setPen(QPen(textColor, 2));
-    painter.drawEllipse(point, 4, 4);
+    painter.setPen(QPen(textColor, 2.0 * scale));
+    painter.drawEllipse(point, 4.0 * scale, 4.0 * scale);
 
     painter.restore();
 }
