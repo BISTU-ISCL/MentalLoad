@@ -3,6 +3,7 @@
 #include <QBrush>
 #include <QDebug>
 #include <QPainter>
+#include <QFontMetricsF>
 #include <QtMath>
 
 LoadTimelineWidget::LoadTimelineWidget(QWidget *parent)
@@ -143,12 +144,14 @@ QRectF LoadTimelineWidget::chartRect() const {
 }
 
 qreal LoadTimelineWidget::uiScale() const {
-    // 以设计稿 440x260 为基准进行自适应缩放，避免尺寸变化造成视觉畸变
+    // 以设计稿 440x260 为基准，并结合设备像素比，保证缩放后字体/画面观感一致
     const qreal baseWidth = 440.0;
     const qreal baseHeight = 260.0;
     const qreal sx = width() / baseWidth;
     const qreal sy = height() / baseHeight;
-    return qBound<qreal>(0.75, qMin(sx, sy), 1.6);
+    const qreal sizeScale = qBound<qreal>(0.85, qMin(sx, sy), 1.25);
+    const qreal dprScale = devicePixelRatioF();
+    return qBound<qreal>(0.9 * dprScale, sizeScale * dprScale, 1.8 * dprScale);
 }
 
 qreal LoadTimelineWidget::scaledMargin() const {
@@ -247,7 +250,7 @@ void LoadTimelineWidget::drawAxis(QPainter &painter, const QRectF &area, qreal s
     // X轴时间刻度文本
     painter.setPen(QPen(QColor(80, 80, 80), 1.0 * scale));
     QFont tickFont = painter.font();
-    tickFont.setPixelSize(qMax(8.0, 10.0 * scale));
+    tickFont.setPointSizeF(qMax(8.0, 9.5 * scale));
     painter.setFont(tickFont);
 
     const int tickCount = qMax(1, m_timeWindowSeconds / m_tickIntervalSeconds);
@@ -302,13 +305,16 @@ void LoadTimelineWidget::drawCurrentValueLabel(QPainter &painter, const QPointF 
     QString text = QString::number(value, 'f', 1);
     QFont font = painter.font();
     font.setBold(true);
-    font.setPixelSize(qMax(10.0, 12.0 * scale));
+    font.setPointSizeF(qMax(10.0, 11.0 * scale));
     painter.setFont(font);
 
     QColor textColor = colorForLoad(value);
     painter.setPen(Qt::NoPen);
     painter.setBrush(QColor(255, 255, 255, 220));
-    QRectF rect(point.x() + 8.0 * scale, point.y() - 16.0 * scale, 60.0 * scale, 22.0 * scale);
+    QFontMetricsF metrics(font);
+    const qreal textWidth = metrics.horizontalAdvance(text) + 12.0 * scale;
+    const qreal textHeight = metrics.height() + 6.0 * scale;
+    QRectF rect(point.x() + 8.0 * scale, point.y() - textHeight, textWidth, textHeight);
     painter.drawRoundedRect(rect, 4.0 * scale, 4.0 * scale);
 
     painter.setPen(QPen(textColor, 1.0 * scale));
